@@ -23,8 +23,11 @@ ball_speed = [BALL_SPEED, BALL_SPEED]
 # Your paddle vertically centered on the left side
 paddle_rect = pygame.Rect((PADDLE_START_X, PADDLE_START_Y), (PADDLE_WIDTH, PADDLE_HEIGHT))
 
+# Enemy's paddle vertically centered on the left side
+
+
 # Scoring: 1 point if you hit the ball, -5 point if you miss the ball
-score = 0
+p_score, enemy_score = 0, 0
 
 # Load the font for displaying the score
 font = pygame.font.Font(None, 30)
@@ -61,13 +64,16 @@ while True:
 	# Ball collision with rails
 	if ball_rect.top <= 0 or ball_rect.bottom >= SCREEN_HEIGHT:
 		ball_speed[1] = -ball_speed[1]
-	if ball_rect.right >= SCREEN_WIDTH or ball_rect.left <= 0:
+	if ball_rect.right >= SCREEN_WIDTH:
 		ball_speed[0] = -ball_speed[0]
+		p_score += 1        
+	if ball_rect.left <= 0:
+		ball_speed[0] = -ball_speed[0]
+		enemy_score += 1
 
 	# Test if the ball is hit by the paddle; if yes reverse speed and add a point
 	if paddle_rect.colliderect(ball_rect):
 		ball_speed[0] = -ball_speed[0]
-		score += 1
 	
 	# Clear screen
 	screen.fill((255, 255, 255))
@@ -75,9 +81,13 @@ while True:
 	# Render the ball, the paddle, and the score
 	pygame.draw.rect(screen, (0, 0, 0), paddle_rect) # Your paddle
 	pygame.draw.circle(screen, (0, 0, 0), ball_rect.center, ball_rect.width / 2) # The ball
-	score_text = font.render(str(score), True, (0, 0, 0))
-	screen.blit(score_text, ((SCREEN_WIDTH / 2) - font.size(str(score))[0] / 2, 5)) # The score
+	p_score_text = font.render(str(p_score), True, (0, 0, 0))
+	screen.blit(p_score_text, ((SCREEN_WIDTH / 4) - font.size(str(p_score))[0] / 2, 5)) # Player's score
 	
+	enemy_score_text = font.render(str(enemy_score), True, (0, 0, 0))
+	screen.blit(enemy_score_text, ((3 * SCREEN_WIDTH / 4) - font.size(str(p_score))[0] / 2, 5)) # Computer's score
+
+
 	# Update screen and wait 20 milliseconds
 	pygame.display.flip()
 	pygame.time.delay(20)
