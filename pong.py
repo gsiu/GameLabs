@@ -29,6 +29,9 @@ p1_paddle_rect = pygame.Rect((PADDLE_START_X, PADDLE_START_Y), (PADDLE_WIDTH, PA
 # Enemy's paddle vertically centered on the right side
 p2_paddle_rect = pygame.Rect((SCREEN_WIDTH - PADDLE_START_X - PADDLE_WIDTH, PADDLE_START_Y), (PADDLE_WIDTH, PADDLE_HEIGHT))
 
+# Create the center line
+line = pygame.Rect((SCREEN_WIDTH / 2 - 2, 0), (4, SCREEN_HEIGHT))
+
 # Scoring: +1 point if opponent misses the ball
 p1_score, p2_score = 0, 0
 
@@ -37,11 +40,50 @@ font = pygame.font.Font(None, 30)
 game_over_font = pygame.font.Font(None, 50)
 
 game_over = False
-num_hits = 1
+menu = True
+OnePMode = False
+p1_hits = 0
+p1_hit_limit = 10
+
+enemy_Speed = BALL_SPEED 
 
 # Game loop
 while True:
-	if game_over == False:
+	# Let player decide between 1 and 2 player
+	if menu == True:
+		# Clear the screen
+		screen.fill((255, 255, 255))
+		
+		# Make fonts
+		OneP = font.render("Press '1' for One Player", 1, (90, 0, 0))
+		OneP_width = OneP.get_rect()[2]
+		OneP_height = OneP.get_rect()[3]
+		screen.blit(OneP, ((SCREEN_WIDTH - OneP_width)/ 2, SCREEN_HEIGHT / 2))
+		
+		TwoP = font.render("Press '2' for Two Player", 1, (0, 0, 0))
+		TwoP_width = TwoP.get_rect()[2]
+		TwoP_height = TwoP.get_rect()[3]
+		screen.blit(TwoP, ((SCREEN_WIDTH - TwoP_width)/ 2, SCREEN_HEIGHT / 2 + OneP_height))
+		
+		# Event handler
+		for event in pygame.event.get():
+			if event.type == pygame.QUIT:
+				sys.exit(0)
+				pygame.quit()
+		if pygame.key.get_pressed()[pygame.K_ESCAPE]:
+			sys.exit(0)
+			pygame.quit()
+		elif pygame.key.get_pressed()[pygame.K_1]:
+			menu = False
+			OnePMode = True
+		elif pygame.key.get_pressed()[pygame.K_2]:
+			menu = False
+			OnePMode = False
+		
+		# Flip the display
+		pygame.display.flip()
+		
+	elif game_over == False:
 		# Event handler
 		for event in pygame.event.get():
 			if event.type == pygame.QUIT:
@@ -55,12 +97,19 @@ while True:
 				p1_paddle_rect.top = 0
 			elif p1_paddle_rect.bottom >= SCREEN_HEIGHT:
 				p1_paddle_rect.bottom = SCREEN_HEIGHT
+			
+			if p2_paddle_rect.top < 0:
+				p2_paddle_rect.top = 0
+			elif p2_paddle_rect.bottom >= SCREEN_HEIGHT:
+				p2_paddle_rect.bottom = SCREEN_HEIGHT
 
-		# This tests if certain keys are pressed; if yes, move the paddle
+		# This tests if w/s are pressed; if yes, move p1's paddle
 		if pygame.key.get_pressed()[pygame.K_w] and p1_paddle_rect.top > 0:
 			p1_paddle_rect.top -= BALL_SPEED
 		elif pygame.key.get_pressed()[pygame.K_s] and p1_paddle_rect.bottom < SCREEN_HEIGHT:
 			p1_paddle_rect.top += BALL_SPEED
+			
+		# This tests if up/down are pressed; if yes, move p2's paddle
 		if pygame.key.get_pressed()[pygame.K_UP] and p2_paddle_rect.top > 0:
 			p2_paddle_rect.top -= BALL_SPEED
 		elif pygame.key.get_pressed()[pygame.K_DOWN] and p2_paddle_rect.bottom < SCREEN_HEIGHT:
@@ -99,19 +148,26 @@ while True:
 		if p1_paddle_rect.colliderect(ball_rect):
 			ball_speed[0] = -ball_speed[0]
 			pong.play()
-			num_hits += 1
+			p1_hits += 1
 		elif p2_paddle_rect.colliderect(ball_rect):
 			ball_speed[0] = -ball_speed[0]
 			pong.play()
-			num_hits += 1
+		
+		# Slow the enemy if player 1 has returned 10 hits
+		if p1_hits >= p1_hit_limit:
+			p1_hits = 0
+			p2_paddle_rect.center
+			
 			
 		# Clear screen
 		screen.fill((255, 255, 255))
 		
-		# Render the ball, the paddle, and the score
+		# Render the centerline, ball, paddles, and the score
+		pygame.draw.rect(screen, (255, 0, 0), line) # Center line
 		pygame.draw.rect(screen, (0, 0, 0), p1_paddle_rect) # Your paddle
 		pygame.draw.rect(screen, (0, 0, 0), p2_paddle_rect) # Enemy's paddle
 		pygame.draw.circle(screen, (0, 0, 0), ball_rect.center, ball_rect.width / 2) # The ball
+		
 		p1_score_text = font.render(str(p1_score), True, (0, 0, 0))
 		screen.blit(p1_score_text, ((SCREEN_WIDTH / 4) - font.size(str(p1_score))[0] / 2, 5)) # Player's score
 		
@@ -122,6 +178,8 @@ while True:
 		# Update screen and wait 20 milliseconds
 		pygame.display.flip()
 		pygame.time.delay(30)
+		
+	# Game Over
 	else:
 		# Clear screen
 		screen.fill((255, 255, 255))
@@ -151,6 +209,7 @@ while True:
 			pygame.quit()
 		elif pygame.key.get_pressed()[pygame.K_r]:
 			# Reset values to start a new game
+			menu = True
 			game_over = False
 			p1_paddle_rect.topleft = (PADDLE_START_X, PADDLE_START_Y)
 			p2_paddle_rect.topleft = (SCREEN_WIDTH - PADDLE_START_X - PADDLE_WIDTH, PADDLE_START_Y)
