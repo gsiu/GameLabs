@@ -4,7 +4,7 @@ import pygame, sys
 SCREEN_WIDTH = 800
 SCREEN_HEIGHT = 600
 PADDLE_START_X = 10
-PADDLE_START_Y = 350
+PADDLE_START_Y = 250
 PADDLE_WIDTH = 10
 PADDLE_HEIGHT = 100
 BALL_SPEED = 8
@@ -15,7 +15,9 @@ pygame.mixer.init()
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 pygame.display.set_caption("Pong")
 
+# Load sounds
 pong = pygame.mixer.Sound("pong.wav")
+ping = pygame.mixer.Sound("ping.wav")
 
 # This is a rect that contains the ball at the beginning it is set in the center of the screen
 ball_rect = pygame.Rect((SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2), (BALL_WIDTH_HEIGHT, BALL_WIDTH_HEIGHT))
@@ -39,12 +41,16 @@ p1_score, p2_score = 0, 0
 font = pygame.font.Font(None, 30)
 game_over_font = pygame.font.Font(None, 50)
 
+# Screen Booleans
 game_over = False
 menu = True
-OnePMode = False
-p1_hits = 0
-p1_hit_limit = 10
 
+# Bool for 1P Mode
+OnePMode = False
+
+# Variables used if in 1P Mode: slow enemy after 3 hits from player 
+p1_hits = 0
+p1_hit_limit = 3
 enemy_Speed = BALL_SPEED 
 
 # Game loop
@@ -54,8 +60,12 @@ while True:
 		# Clear the screen
 		screen.fill((255, 255, 255))
 		
-		# Make fonts
-		OneP = font.render("Press '1' for One Player", 1, (90, 0, 0))
+		# Make and blit fonts for menu
+		Title = game_over_font.render("Pong", 1, (0, 0, 0))
+		Title_width = Title.get_rect()[2]
+		screen.blit(Title, ((SCREEN_WIDTH - Title_width)/ 2, 200))
+		
+		OneP = font.render("Press '1' for One Player", 1, (0, 0, 0))
 		OneP_width = OneP.get_rect()[2]
 		OneP_height = OneP.get_rect()[3]
 		screen.blit(OneP, ((SCREEN_WIDTH - OneP_width)/ 2, SCREEN_HEIGHT / 2))
@@ -103,17 +113,37 @@ while True:
 			elif p2_paddle_rect.bottom >= SCREEN_HEIGHT:
 				p2_paddle_rect.bottom = SCREEN_HEIGHT
 
-		# This tests if w/s are pressed; if yes, move p1's paddle
-		if pygame.key.get_pressed()[pygame.K_w] and p1_paddle_rect.top > 0:
-			p1_paddle_rect.top -= BALL_SPEED
-		elif pygame.key.get_pressed()[pygame.K_s] and p1_paddle_rect.bottom < SCREEN_HEIGHT:
-			p1_paddle_rect.top += BALL_SPEED
+		# Two player mode
+		if OnePMode == False:
+			# This tests if w/s are pressed; if yes, move p1's paddle
+			if pygame.key.get_pressed()[pygame.K_w] and p1_paddle_rect.top > 0:
+				p1_paddle_rect.top -= BALL_SPEED
+			elif pygame.key.get_pressed()[pygame.K_s] and p1_paddle_rect.bottom < SCREEN_HEIGHT:
+				p1_paddle_rect.top += BALL_SPEED		
+			# This tests if up/down are pressed; if yes, move p2's paddle
+			if pygame.key.get_pressed()[pygame.K_UP] and p2_paddle_rect.top > 0:
+				p2_paddle_rect.top -= BALL_SPEED
+			elif pygame.key.get_pressed()[pygame.K_DOWN] and p2_paddle_rect.bottom < SCREEN_HEIGHT:
+				p2_paddle_rect.top += BALL_SPEED
+				
+		# One player mode
+		else:
+			# This tests if up/down are pressed; if yes, move p1's paddle
+			if pygame.key.get_pressed()[pygame.K_UP] and p1_paddle_rect.top > 0:
+				p1_paddle_rect.top -= BALL_SPEED
+			elif pygame.key.get_pressed()[pygame.K_DOWN] and p1_paddle_rect.bottom < SCREEN_HEIGHT:
+				p1_paddle_rect.top += BALL_SPEED		
+			# Move enemy's paddle according to ball position
+			if p2_paddle_rect.center[1] > ball_rect.center[1] and p2_paddle_rect.top > 0:
+				p2_paddle_rect.top -= enemy_Speed
+			elif p2_paddle_rect.center[1] < ball_rect.center[1]and p2_paddle_rect.bottom < SCREEN_HEIGHT:
+				p2_paddle_rect.top += enemy_Speed
+			# Slow the enemy if player 1 has returned 10 hits
+			if p1_hits >= p1_hit_limit:
+				p1_hits = 0
+				enemy_Speed -= 1
+		
 			
-		# This tests if up/down are pressed; if yes, move p2's paddle
-		if pygame.key.get_pressed()[pygame.K_UP] and p2_paddle_rect.top > 0:
-			p2_paddle_rect.top -= BALL_SPEED
-		elif pygame.key.get_pressed()[pygame.K_DOWN] and p2_paddle_rect.bottom < SCREEN_HEIGHT:
-			p2_paddle_rect.top += BALL_SPEED
 		if pygame.key.get_pressed()[pygame.K_ESCAPE]:
 			sys.exit(0)
 			pygame.quit()
@@ -125,16 +155,21 @@ while True:
 		# Ball collision with rails
 		if ball_rect.top <= 0 or ball_rect.bottom >= SCREEN_HEIGHT:
 			ball_speed[1] = -ball_speed[1]
+			ping.play()
 			
 		# A player has scored
 		if ball_rect.right >= SCREEN_WIDTH:
 			ball_rect.topleft = (SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
 			ball_speed = [BALL_SPEED, BALL_SPEED]
 			p1_score += 1
+			# Reset enemy's speed (only used in 1P mode)
+			enemy_Speed = BALL_SPEED
 		if ball_rect.left <= 0:
 			ball_rect.topleft = (SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
 			ball_speed = [-1 * BALL_SPEED, BALL_SPEED]
 			p2_score += 1
+			# Reset enemy's speed (only used in 1P mode)
+			enemy_Speed = BALL_SPEED
 				
 		# A player has won
 		if p1_score == 11:
@@ -148,16 +183,11 @@ while True:
 		if p1_paddle_rect.colliderect(ball_rect):
 			ball_speed[0] = -ball_speed[0]
 			pong.play()
+			# Increment number of hits p1 has returned (only used in 1P mode)
 			p1_hits += 1
 		elif p2_paddle_rect.colliderect(ball_rect):
 			ball_speed[0] = -ball_speed[0]
-			pong.play()
-		
-		# Slow the enemy if player 1 has returned 10 hits
-		if p1_hits >= p1_hit_limit:
-			p1_hits = 0
-			p2_paddle_rect.center
-			
+			pong.play()	
 			
 		# Clear screen
 		screen.fill((255, 255, 255))
@@ -177,7 +207,7 @@ while True:
 		
 		# Update screen and wait 20 milliseconds
 		pygame.display.flip()
-		pygame.time.delay(30)
+		pygame.time.delay(20)
 		
 	# Game Over
 	else:
