@@ -18,6 +18,7 @@ pygame.display.set_caption("Pong")
 # Load sounds
 pong = pygame.mixer.Sound("pong.wav")
 ping = pygame.mixer.Sound("ping.wav")
+win =  pygame.mixer.Sound("Coin_Sound.wav")
 
 # This is a rect that contains the ball at the beginning it is set in the center of the screen
 ball_rect = pygame.Rect((SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2), (BALL_WIDTH_HEIGHT, BALL_WIDTH_HEIGHT))
@@ -164,12 +165,14 @@ while True:
 			p1_score += 1
 			# Reset enemy's speed (only used in 1P mode)
 			enemy_Speed = BALL_SPEED
+			win.play()
 		if ball_rect.left <= 0:
 			ball_rect.topleft = (SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2)
 			ball_speed = [-1 * BALL_SPEED, BALL_SPEED]
 			p2_score += 1
 			# Reset enemy's speed (only used in 1P mode)
 			enemy_Speed = BALL_SPEED
+			win.play()
 				
 		# A player has won
 		if p1_score == 11:
